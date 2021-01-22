@@ -40,6 +40,7 @@ from tfx.types.component_spec import ExecutionParameter
 SCHEMA_KEY = 'schema'
 EXAMPLES_KEY = 'examples'
 MODEL_KEY = 'model'
+CUSTOM_CONFIG_KEY = 'custom_config'
 BLESSING_KEY = 'blessing'
 TRAIN_ARGS_KEY = 'train_args'
 MODULE_FILE_KEY = 'module_file'
@@ -73,6 +74,12 @@ DATA_SPEC_KEY = 'data_spec'
 OUTPUT_EXAMPLE_SPEC_KEY = 'output_example_spec'
 INFERENCE_RESULT_KEY = 'inference_result'
 OUTPUT_EXAMPLES_KEY = 'output_examples'
+# Key for example_gen
+INPUT_BASE_KEY = 'input_base'
+INPUT_CONFIG_KEY = 'input_config'
+OUTPUT_CONFIG_KEY = 'output_config'
+OUTPUT_DATA_FORMAT_KEY = 'output_data_format'
+RANGE_CONFIG_KEY = 'range_config'
 # Key for pusher
 PUSH_DESTINATION_KEY = 'push_destination'
 INFRA_BLESSING_KEY = 'infra_blessing'
@@ -173,22 +180,22 @@ class FileBasedExampleGenSpec(ComponentSpec):
   """File-based ExampleGen component spec."""
 
   PARAMETERS = {
-      'input_base':
+      INPUT_BASE_KEY:
           ExecutionParameter(type=(str, Text)),
-      'input_config':
+      INPUT_CONFIG_KEY:
           ExecutionParameter(type=example_gen_pb2.Input),
-      'output_config':
+      OUTPUT_CONFIG_KEY:
           ExecutionParameter(type=example_gen_pb2.Output),
-      'output_data_format':
+      OUTPUT_DATA_FORMAT_KEY:
           ExecutionParameter(type=int),  # example_gen_pb2.PayloadType enum.
-      'custom_config':
+      CUSTOM_CONFIG_KEY:
           ExecutionParameter(type=example_gen_pb2.CustomConfig, optional=True),
-      'range_config':
+      RANGE_CONFIG_KEY:
           ExecutionParameter(type=range_config_pb2.RangeConfig, optional=True),
   }
   INPUTS = {}
   OUTPUTS = {
-      'examples': ChannelParameter(type=standard_artifacts.Examples),
+      EXAMPLES_KEY: ChannelParameter(type=standard_artifacts.Examples),
   }
 
 
@@ -196,18 +203,18 @@ class QueryBasedExampleGenSpec(ComponentSpec):
   """Query-based ExampleGen component spec."""
 
   PARAMETERS = {
-      'input_config':
+      INPUT_CONFIG_KEY:
           ExecutionParameter(type=example_gen_pb2.Input),
-      'output_config':
+      OUTPUT_CONFIG_KEY:
           ExecutionParameter(type=example_gen_pb2.Output),
-      'output_data_format':
+      OUTPUT_DATA_FORMAT_KEY:
           ExecutionParameter(type=int),  # example_gen_pb2.PayloadType enum.
-      'custom_config':
+      CUSTOM_CONFIG_KEY:
           ExecutionParameter(type=example_gen_pb2.CustomConfig, optional=True),
   }
   INPUTS = {}
   OUTPUTS = {
-      'examples': ChannelParameter(type=standard_artifacts.Examples),
+      EXAMPLES_KEY: ChannelParameter(type=standard_artifacts.Examples),
   }
 
 
