@@ -9,6 +9,7 @@
 ### For component authors
 
 ## Deprecations
+*   Deprecated input/output compatibility aliases for StatisticsGen.
 
 ## Bug fixes and other changes
 
