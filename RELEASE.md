@@ -178,6 +178,94 @@
 *   TrainerFnArgs is deprecated by FnArgs.
 *   Deprecated DockerComponentConfig class: user should set a DockerPlatformConfig
     proto in `platform_config` using `with_platform_config()` API instead.
+*   Migrate from custom Launcher to custom ExecutorOperator
+  * Background:
+    ExecutorOperator is a new abstraction layer in the new execution stack.
+    And in the new stack, developers are not expected to define a subclass of
+    BaseComponentLauncher, but instead define a subclass of BaseExecutorOperator
+    and the SDK compiler will “inject” it into the generic [Launcher](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/launcher.py#L91).
+  * [This](https://github.com/tensorflow/tfx/search?q=343405676&type=commits) is an example change.
+  * Followings are the steps:
+    1. Change the custom launcher implementation to custom executor operator implementation.
+       a. Delete the can_launch method, the new Launcher guarantees that given
+          an executor spec, it uses the corresponding executor operator,
+          so the verification in can_launch is not needed anymore: [link](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/launcher.py#L151-L152)
+       b. Define the constructor following the exact argument list from the base
+          class. Here is an example implementation:
+          ```
+          def __init__(self,
+              executor_spec: message.Message,
+              platform_config: Optional[message.Message] = None):
+              super().__init__(executor_spec, platform_config)
+              self._container_executor_spec = cast(
+                executable_spec_pb2.ContainerExecutableSpec, self._executor_spec)
+          ```
+       c. Change the _run_executor method
+          ```
+          def _run_executor(
+              self, execution_id: int,
+              input_dict: Dict[Text, List[types.Artifact]],
+              output_dict: Dict[Text, List[types.Artifact]],
+              exec_properties: Dict[Text, Any]) -> None:
+          ```
+          to the new run_executor method:
+          ```
+          def run_executor(
+            self, execution_info: data_types.ExecutionInfo
+          ) -> execution_result_pb2.ExecutorOutput:
+          ```
+          please note that the new execution_info argument is a superset of the argument list of the old _run_executor method.
+       d.Update unit test accordingly, if any.
+
+    2. Let the generic launcher be aware of this new Executor operator.
+       a. If this is a TFX team owned ExecutorOperator add it to the
+          [DEFAULT_EXECUTOR_OPERATORS](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/launcher.py#L58-L61)
+          dictionary in the Launcher module.
+       b. If this is a custom ExecutorOperator, inject it into the launcher
+          constructor via the [custom_executor_operators](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/launcher.py#L107-L108)
+          argument.
+  * Appendix
+    For advanced developers who deeply customized the legacy Launcher only,
+    STOP reading if you only customize the _run_executor() method:
+
+    Where all the old functionality of the legacy Launcher go:
+    * The create() method:
+      There is only one Launcher class going forward, so no polymorphism support
+      is needed. You don’t need to maintain this logic anymore. But you need to
+      make sure the ExecutorOperator’s constructor uses the exact function
+      signature of its base class.
+
+    * The can_launch() method:
+      This method is not needed any more for the reason mentioned above.
+
+    * The _run_executor() method:
+      This is abstracted as the ExecutorOperator layer mentioned above.
+
+    * The _run_diver() method:
+      Most of the driver logic is implemented generically in the new generic
+      Launcher and is hidden from developers. Developers only need to customize 
+      this layer when they want to define and customize the output of a
+      component. This is abstracted as the Driver/DriveOperator layer, a layer 
+      that is very similar to the Executor/ExecutorOperator. If you override 
+      this method, you can follow the migration instruction above to migrate it 
+      to the new stack, with the following difference:
+      * Driver’s should derive from the [BaseDriver](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/base_driver.py)
+      * DriverOperator’s should derive from the [BaseDriverOperator](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/base_driver_operator.py#L27)
+      * Custom DriverOperator’s should be registered to the
+        [DEFUALT_DRIVER_OPERATOR](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/launcher.py#L58)
+        map or injected into the launcher via the
+        [custom_driver_operators](https://github.com/tensorflow/tfx/blob/master/tfx/orchestration/portable/launcher.py#L109-L110)
+        argument.
+
+    * The _run_publisher() method:
+      This is implemented generically in the new generic Launcher and is hidden from developers.
+
+    * The launch() method
+      This is implemented in the new generic Launcher and is hidden from the developers.
+
+
+
+
 
 ## Bug fixes and other changes
 
