@@ -5,6 +5,10 @@
 ## Breaking changes
 
 ### For pipeline authors
+*  Added an example pipeline for a ranking model (using
+   [tensorflow_ranking](https://github.com/tensorflow/ranking))
+   at `tfx/examples/ranking`. More documentation will be available in future
+   releases.
 
 ### For component authors
 
